@@ -5,7 +5,7 @@
   },
   "scripts": {
     "lint": "jscs .",
-    "test": "mocha test"
+    "test": "mocha test -R nyan"
   },
   "devDependencies": {
     "chai": "^3.5.0",
