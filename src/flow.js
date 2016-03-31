@@ -28,7 +28,8 @@ function checkIfInvalid(arrayToCheck, functionToCheck) {
 // колбэк ошибку, то следующая не выполняется, а вызывается основной колбэк callback
 module.exports.serial = function (arrayOfFunctions, callback) {
     if (checkIfInvalid(arrayOfFunctions)) {
-        return null;
+        callback(new Error(), null);
+        return;
     }
     var nextFunction = arrayOfFunctions.shift();
     var counter = arrayOfFunctions.length;
@@ -51,13 +52,14 @@ module.exports.serial = function (arrayOfFunctions, callback) {
 // Колбэк принимает первым параметром ошибку, а вторым – данные для конечного массива.
 module.exports.parallel = function (arrayOfFunctions, callback) {
     if (checkIfInvalid(arrayOfFunctions)) {
-        return null;
+        callback(new Error(), null);
+        return;
     }
-
-    var results = [];
     var counter = arrayOfFunctions.length;
+    var results = [];
     var next = function next(error, data) {
         if (error) {
+            counter--;
             callback(error);
         } else if (!counter) {
             callback(null, results);
@@ -79,12 +81,14 @@ module.exports.parallel = function (arrayOfFunctions, callback) {
 // основной колбэк при завершении всех запусков.
 module.exports.map = function (arrayOfValues, func, callback) {
     if (checkIfInvalid(arrayOfValues, func)) {
-        return null;
+        callback(new Error(), null);
+        return;
     }
-    var results = [];
     var counter = arrayOfValues.length;
+    var results = [];
     var next = function next(error, data) {
         if (error) {
+            counter--;
             callback(error);
         } else if (!counter) {
             callback(null, results);

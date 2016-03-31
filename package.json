@@ -8,7 +8,7 @@
     "test": "mocha test -R nyan"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
+    "bluebird": "^3.3.4",
     "mocha": "^2.4.5",
     "sinon": "^1.17.3"
   }
