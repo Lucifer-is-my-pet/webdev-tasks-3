@@ -1,25 +1,40 @@
 'use strict';
 
-function checkIfInvalid(arrayToCheck, functionToCheck) {
+function checkIfInvalid (arrayToCheck, functionToCheck) {
     if (!arguments[0]) {
         return true;
     }
-    var isNotArrayOrEmpty = Object.getPrototypeOf(arrayToCheck) !== Array.prototype ||
-        !arrayToCheck.length;
-    if (!isNotArrayOrEmpty) { // если с массивом снаружи всё норм
+
+    if (!arrayToCheck.length) {
+        return false;
+    }
+
+    var isNotArray = Object.getPrototypeOf(arrayToCheck) !== Array.prototype;
+
+    if (!isNotArray) { // если массив
         if (arguments.length === 1) { // если в массиве - функции
             for (var i in arrayToCheck) {
                 if (Object.getPrototypeOf(arrayToCheck[i]) !== Function.prototype) {
                     return true;
                 }
             }
+
             return false;
         } else if (functionToCheck) {
             return Object.getPrototypeOf(functionToCheck) !== Function.prototype;
         }
+
         return true;
     }
-    return isNotArrayOrEmpty;
+
+    return false;
+}
+
+function checkForCallback (arg) {
+    if (arg && Object.getPrototypeOf(arg) === Function.prototype) {
+        return true;
+    }
+    return false;
 }
 
 // Функция serial запускает функции в массиве последовательно. Результат функции передается в
@@ -28,9 +43,15 @@ function checkIfInvalid(arrayToCheck, functionToCheck) {
 // колбэк ошибку, то следующая не выполняется, а вызывается основной колбэк callback
 module.exports.serial = function (arrayOfFunctions, callback) {
     if (checkIfInvalid(arrayOfFunctions)) {
-        callback(new Error(), null);
+        callback(new Error('Неверные входные данные'), null);
+        return;
+    } else if (!checkForCallback(callback)) {
+        throw new Error('Отсутствует callback');
+    } else if (!arrayOfFunctions.length) {
+        callback(null, null);
         return;
     }
+
     var nextFunction = arrayOfFunctions.shift();
     var counter = arrayOfFunctions.length;
     var next = function next(error, data) {
@@ -44,6 +65,7 @@ module.exports.serial = function (arrayOfFunctions, callback) {
             nextFunction(data, next);
         }
     };
+
     nextFunction(next);
 };
 
@@ -52,15 +74,24 @@ module.exports.serial = function (arrayOfFunctions, callback) {
 // Колбэк принимает первым параметром ошибку, а вторым – данные для конечного массива.
 module.exports.parallel = function (arrayOfFunctions, callback) {
     if (checkIfInvalid(arrayOfFunctions)) {
-        callback(new Error(), null);
+        callback(new Error('Неверные входные данные'), null);
+        return;
+    } else if (!checkForCallback(callback)) {
+        throw new Error('Отсутствует callback');
+    } else if (!arrayOfFunctions.length) {
+        callback(null, null);
         return;
     }
+
     var counter = arrayOfFunctions.length;
     var results = [];
     var next = function next(error, data) {
         if (error) {
             counter--;
-            callback(error);
+            results.push(null);
+            if (!counter) {
+                next();
+            }
         } else if (!counter) {
             callback(null, results);
         } else {
@@ -71,6 +102,7 @@ module.exports.parallel = function (arrayOfFunctions, callback) {
             }
         }
     };
+
     for (var i in arrayOfFunctions) {
         arrayOfFunctions[i](next);
     }
@@ -81,9 +113,15 @@ module.exports.parallel = function (arrayOfFunctions, callback) {
 // основной колбэк при завершении всех запусков.
 module.exports.map = function (arrayOfValues, func, callback) {
     if (checkIfInvalid(arrayOfValues, func)) {
-        callback(new Error(), null);
+        callback(new Error('Неверные входные данные'), null);
+        return;
+    } else if (!checkForCallback(callback)) {
+        throw new Error('Отсутствует callback');
+    } else if (!arrayOfValues.length) {
+        callback(null, null);
         return;
     }
+
     var counter = arrayOfValues.length;
     var results = [];
     var next = function next(error, data) {
@@ -100,6 +138,7 @@ module.exports.map = function (arrayOfValues, func, callback) {
             }
         }
     };
+
     for (var i in arrayOfValues) {
         func(arrayOfValues[i], next);
     }
