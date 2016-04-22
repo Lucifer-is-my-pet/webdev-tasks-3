@@ -5,33 +5,27 @@ function checkIfInvalid (arrayToCheck, functionToCheck) {
         return true;
     }
 
-    if (!arrayToCheck.length) {
-        return false;
-    }
-
-    var isNotArray = Object.getPrototypeOf(arrayToCheck) !== Array.prototype;
-
-    if (!isNotArray) { // если массив
+    if (Array.isArray(arrayToCheck)) {
         if (arguments.length === 1) { // если в массиве - функции
-            for (var i in arrayToCheck) {
-                if (Object.getPrototypeOf(arrayToCheck[i]) !== Function.prototype) {
+            arrayToCheck.forEach(function (item) {
+                if (typeof item !== 'function') {
                     return true;
                 }
-            }
+            });
 
             return false;
         } else if (functionToCheck) {
-            return Object.getPrototypeOf(functionToCheck) !== Function.prototype;
+            return typeof functionToCheck !== 'function';
         }
 
         return true;
     }
 
-    return false;
+    return true;
 }
 
 function checkForCallback (arg) {
-    if (arg && Object.getPrototypeOf(arg) === Function.prototype) {
+    if (arg && typeof arg === 'function') {
         return true;
     }
     return false;
@@ -85,15 +79,17 @@ module.exports.parallel = function (arrayOfFunctions, callback) {
 
     var counter = arrayOfFunctions.length;
     var results = [];
+    var err = null;
     var next = function next(error, data) {
         if (error) {
             counter--;
             results.push(null);
+            err = error;
             if (!counter) {
                 next();
             }
         } else if (!counter) {
-            callback(null, results);
+            callback(err, results);
         } else {
             counter--;
             results.push(data);
@@ -103,9 +99,9 @@ module.exports.parallel = function (arrayOfFunctions, callback) {
         }
     };
 
-    for (var i in arrayOfFunctions) {
-        arrayOfFunctions[i](next);
-    }
+    arrayOfFunctions.forEach(function(func, i) {
+        func(next);
+    });
 };
 
 // Функция map запускает функцию с каждым значением параллельно. Переданная функция принимает
@@ -124,12 +120,17 @@ module.exports.map = function (arrayOfValues, func, callback) {
 
     var counter = arrayOfValues.length;
     var results = [];
+    var err = null;
     var next = function next(error, data) {
         if (error) {
             counter--;
-            callback(error);
+            results.push(null);
+            err = error;
+            if (!counter) {
+                next();
+            }
         } else if (!counter) {
-            callback(null, results);
+            callback(err, results);
         } else {
             counter--;
             results.push(data);
@@ -139,7 +140,7 @@ module.exports.map = function (arrayOfValues, func, callback) {
         }
     };
 
-    for (var i in arrayOfValues) {
-        func(arrayOfValues[i], next);
-    }
+   arrayOfValues.forEach(function(value, i) {
+       func(value, next);
+    });
 };

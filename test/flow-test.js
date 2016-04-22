@@ -5,9 +5,18 @@ const assert = require('assert');
 const sinon = require('sinon');
 
 describe('Serial', function () {
+    var fakeTimer;
+
+    beforeEach(function () {
+        fakeTimer = sinon.useFakeTimers();
+    });
+    afterEach(function () {
+        fakeTimer.restore();
+    });
+
     function testFunc1(data, next) {
         next = next || data;
-        data = Object.getPrototypeOf(data) === Function.prototype ? 100 : data;
+        data = typeof data === 'function' ? 100 : data;
         setTimeout(function () {
             next(null, data + 100);
         }, 1000);
@@ -29,14 +38,6 @@ describe('Serial', function () {
     }
 
     describe('Test for errors', function () {
-        var fakeTimer;
-
-        beforeEach(function () {
-            fakeTimer = sinon.useFakeTimers();
-        });
-        afterEach(function () {
-            fakeTimer.restore();
-        });
 
         it('should return error after 1 function', function () {
             var spy = sinon.spy();
@@ -80,6 +81,13 @@ describe('Serial', function () {
         it('should call callback with error', function () {
             var spy = sinon.spy();
 
+            flow.serial('', spy);
+            assert.equal(spy.calledWith(Error()), true);
+        });
+
+        it('should call callback with null', function () {
+            var spy = sinon.spy();
+
             flow.serial([], spy);
             assert.equal(spy.calledWith(null, null), true);
         });
@@ -92,14 +100,6 @@ describe('Serial', function () {
     });
 
     describe('Test for functionality', function () {
-        var fakeTimer;
-
-        beforeEach(function () {
-            fakeTimer = sinon.useFakeTimers();
-        });
-        afterEach(function () {
-            fakeTimer.restore();
-        });
 
         it('should call functions serially 1', function () {
             var spy = sinon.spy();
@@ -126,6 +126,15 @@ describe('Serial', function () {
 });
 
 describe('Parallel', function () {
+    var fakeTimer;
+
+    beforeEach(function () {
+        fakeTimer = sinon.useFakeTimers();
+    });
+    afterEach(function () {
+        fakeTimer.restore();
+    });
+
     function testFunc1(next) {
         setTimeout(function () {
             next(null, 100);
@@ -145,14 +154,6 @@ describe('Parallel', function () {
     }
 
     describe('Test for errors', function () {
-        var fakeTimer;
-
-        beforeEach(function () {
-             fakeTimer = sinon.useFakeTimers();
-        });
-        afterEach(function () {
-            fakeTimer.restore();
-        });
 
         it('should return null on error', function () {
             var spy = sinon.spy();
@@ -162,20 +163,13 @@ describe('Parallel', function () {
             fakeTimer.tick(1000);
             assert.equal(spy.called, false);
             fakeTimer.tick(1000);
-            assert.equal(spy.calledWith(null, [null, 'test text', 100]), true);
+            assert.equal(spy.calledWith(Error(), [null, 'test text', 100]), true);
             assert.equal(spy.calledOnce, true);
         });
     });
 
     describe('Test for functionality', function () {
-        var fakeTimer;
 
-        beforeEach(function () {
-            fakeTimer = sinon.useFakeTimers();
-        });
-        afterEach(function () {
-            fakeTimer.restore();
-        });
         it('should call functions parallel', function () {
             var spy = sinon.spy();
 
@@ -211,15 +205,17 @@ describe('Parallel', function () {
 
 describe('Map', function () {
     var testArray = [0, -1, 99];
+    var fakeTimer;
+
+    beforeEach(function () {
+        fakeTimer = sinon.useFakeTimers();
+    });
+    afterEach(function () {
+        fakeTimer.restore();
+    });
 
     describe('Test for errors', function () {
-        var fakeTimer;
-        beforeEach(function () {
-            fakeTimer = sinon.useFakeTimers();
-        });
-        afterEach(function () {
-            fakeTimer.restore();
-        });
+
         it('should return error', function () {
             function testFunc1(data, next) {
                 setTimeout(function () {
@@ -232,23 +228,13 @@ describe('Map', function () {
             flow.map(testArray, testFunc1, spy);
             assert.equal(spy.called, false);
             fakeTimer.tick(1000);
-            assert.equal(spy.calledWith(Error()), true);
-            assert.equal(spy.calledWith(Error(), 0), false);
-            assert.equal(spy.calledWith(Error(), -2), false);
-            assert.equal(spy.calledWith(Error(), 198), false);
-            assert.equal(spy.calledThrice, true);
+            assert.equal(spy.calledWith(Error(), [null, null, null]), true);
+            assert.equal(spy.calledOnce, true);
         });
     });
 
     describe('Test for functionality', function () {
-        var fakeTimer;
 
-        beforeEach(function () {
-            fakeTimer = sinon.useFakeTimers();
-        });
-        afterEach(function () {
-            fakeTimer.restore();
-        });
         it('should apply function to array', function () {
             function testFunc2(data, next) {
                 setTimeout(function () {
